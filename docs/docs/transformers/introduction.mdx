@@ -1,0 +1,49 @@
+---
+title: Introduction
+description: Learn about Neosync transformers and how you can use them to anonymize data and generate synthetic data
+id: introduction
+hide_title: false
+slug: /transformers/introduction
+---
+
+import { CustomCardList } from '@site/src/CustomComponents/CustomCardList';
+
+import { IoBuildOutline } from 'react-icons/io5';
+
+import { GoCode } from 'react-icons/go';
+
+## Introduction
+
+Transformers are data-type specific modules that anonymize or generate data. For example, an email transformer can create a synthetic email address or anonymize an existing email address.
+
+Transformers are defined in the job workflow and are applied to every piece of data in the column they are assigned. Neosync ships with over 40 pre-defined transformers that make it fast and easy to get started.
+
+![udt](https://assets.nucleuscloud.com/neosync/docs/udt-home.png)
+
+## Transformer Types
+
+There are two types of transformers:
+
+1. System Transformers - Pre-built and configured transformers that automatically come with Neosync out of the box. These cannot be deleted but they can be cloned.
+2. User Defined Transformers - These are system transformers that have been cloned, re-configured and renamed. These transformers can be edited and deleted.
+
+## Transformers
+
+You can browse our list of system transformers which come out of the box or you can see how to create you own custom transformer.
+
+<CustomCardList
+  cards={[
+    {
+      title: 'System Transformers',
+      description: 'Pre-built transformers that are ready to use',
+      link: '/transformers/system',
+      icon: <IoBuildOutline />,
+    },
+    {
+      title: 'User Defined Transformers',
+      description: 'Define your own transformers',
+      link: '/transformers/user-defined',
+      icon: <GoCode />,
+    },
+  ]}
+/>

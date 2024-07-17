@@ -1,0 +1,14 @@
+FROM alpine:3.18
+
+RUN mkdir -p .config/helm/registry
+RUN mkdir /app
+
+WORKDIR /app
+
+COPY /sql/postgresql/schema/ /app/migrations/
+
+RUN echo 'NUCLEUS_ENV=dev' > /app/.env
+
+COPY /bin/mgmt /app
+
+ENTRYPOINT ["/app/mgmt"]

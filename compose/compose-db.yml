@@ -1,0 +1,36 @@
+services:
+  test-prod-db:
+    container_name: test-prod-db
+    image: postgres:15
+    ports:
+      - 5434:5432
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PGUSER=postgres
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - neosync-network
+    volumes:
+      - ../scripts/seed-test-prod-db.sql:/docker-entrypoint-initdb.d/seed.sql
+
+  test-stage-db:
+    container_name: test-stage-db
+    image: postgres:15
+    ports:
+      - 5435:5432
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PGUSER=postgres
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - neosync-network

@@ -1,0 +1,33 @@
+# Build the manager binary
+FROM golang:1.22 as builder
+
+WORKDIR /workspace
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+
+RUN go mod download
+
+WORKDIR /workspace
+COPY backend/ backend/
+
+WORKDIR /workspace/worker
+
+# Copy the go source
+COPY worker/cmd/ cmd/
+COPY worker/internal/ internal/
+COPY worker/pkg/ pkg/
+
+# Build
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/worker cmd/worker/*.go
+
+# Use distroless as minimal base image to package the manager binary
+# Refer to https://github.com/GoogleContainerTools/distroless for more details
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /
+COPY --from=builder /workspace/worker/bin/worker .
+USER 65532:65532
+
+ENTRYPOINT ["/worker"]
+
+CMD ["serve"]

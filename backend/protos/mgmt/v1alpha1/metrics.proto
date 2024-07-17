@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package mgmt.v1alpha1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// Represents a whole or partial calendar date, such as a birthday. The time of
+// day and time zone are either specified elsewhere or are insignificant. The
+// date is relative to the Gregorian Calendar. This can represent one of the
+// following:
+//
+// * A full date, with non-zero year, month, and day values
+// * A month and day value, with a zero year, such as an anniversary
+// * A year on its own, with zero month and day values
+// * A year and month value, with a zero day, such as a credit card expiration
+// date
+//
+// Related types are [google.type.TimeOfDay][google.type.TimeOfDay] and
+// `google.protobuf.Timestamp`.
+message Date {
+  // Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+  // a year.
+  uint32 year = 1 [
+    (buf.validate.field).uint32.gte = 0,
+    (buf.validate.field).uint32.lte = 9999
+  ];
+  // Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+  // month and day.
+  uint32 month = 2 [
+    (buf.validate.field).uint32.gte = 0,
+    (buf.validate.field).uint32.lte = 31
+  ];
+  // Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+  // to specify a year by itself or a year and month where the day isn't
+  // significant.
+  uint32 day = 3 [
+    (buf.validate.field).uint32.gte = 0,
+    (buf.validate.field).uint32.lte = 31
+  ];
+}
+
+// message MetricResult {
+//   // figure out what this is
+//   map<string, string> metric = 1;
+//   // A repeated list of metric values for the given range
+//   repeated MetricValue values = 2;
+// }
+
+// message MetricValue {
+//   // The actual value of the metric
+//   string value = 1;
+//   // The timestamp of when this value was recorded
+//   google.protobuf.Timestamp timestamp = 2;
+// }
+
+message GetDailyMetricCountRequest {
+  // The start day
+  Date start = 1;
+  // The end day
+  Date end = 2;
+  // The metric to return
+  RangedMetricName metric = 3;
+
+  oneof identifier {
+    // The account identifier that will be used to filter by
+    string account_id = 4 [(buf.validate.field).string.uuid = true];
+    // The job identifier that will be used to filter by
+    string job_id = 5 [(buf.validate.field).string.uuid = true];
+    // The run identifier that will be used to filter by
+    string run_id = 6 [(buf.validate.field).string.uuid = true];
+  }
+}
+
+enum RangedMetricName {
+  // If unspecified, an error will be thrown
+  RANGED_METRIC_NAME_UNSPECIFIED = 0;
+  // The input_received metric
+  RANGED_METRIC_NAME_INPUT_RECEIVED = 1;
+}
+
+message GetDailyMetricCountResponse {
+  repeated DayResult results = 1;
+}
+
+message DayResult {
+  Date date = 1;
+  uint64 count = 2;
+}
+
+message GetMetricCountRequest {
+  // @deprecated - use start_day
+  google.protobuf.Timestamp start = 1;
+  // @deprecated - use end_day
+  google.protobuf.Timestamp end = 2;
+  // The metric to return
+  RangedMetricName metric = 3;
+
+  oneof identifier {
+    // The account identifier that will be used to filter by
+    string account_id = 4 [(buf.validate.field).string.uuid = true];
+    // The job identifier that will be used to filter by
+    string job_id = 5 [(buf.validate.field).string.uuid = true];
+    // The run identifier that will be used to filter by
+    string run_id = 6 [(buf.validate.field).string.uuid = true];
+  }
+  Date start_day = 7;
+  Date end_day = 8;
+}
+message GetMetricCountResponse {
+  // The summed up count of the metric based on the input query and timerange specified
+  uint64 count = 1;
+}
+
+service MetricsService {
+  // Retrieve a timed range of records
+  rpc GetDailyMetricCount(GetDailyMetricCountRequest) returns (GetDailyMetricCountResponse) {}
+
+  // For the given metric and time range, returns the total count found
+  rpc GetMetricCount(GetMetricCountRequest) returns (GetMetricCountResponse) {}
+}

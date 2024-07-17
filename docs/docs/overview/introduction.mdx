@@ -1,0 +1,128 @@
+---
+title: Introduction
+description: Neosync is an open-source, developer-first way to anonymize PII, generate synthetic data and sync environments for better testing, debugging and developer experience
+id: intro
+hide_title: false
+slug: /
+---
+
+import {
+  LayersIcon,
+  LightningBoltIcon,
+  LinkBreak1Icon,
+  StackIcon,
+} from '@radix-ui/react-icons';
+
+import { CustomCard } from '@site/src/CustomComponents/CustomCard.tsx';
+
+import { CustomCardList } from '@site/src/CustomComponents/CustomCardList.tsx';
+
+import { BsFunnel } from 'react-icons/bs';
+
+import ThemedImage from '@theme/ThemedImage';
+
+import {
+  PiArrowCounterClockwise,
+  PiArrowsSplitLight,
+  PiDatabase,
+  PiFlaskLight,
+  PiPlugsLight,
+  PiRocketLaunchLight,
+  PiShieldCheckLight,
+  PiTestTube,
+} from 'react-icons/pi';
+
+# Welcome to the Neosync Docs
+
+Neosync is an open-source, developer-first way to anonymize PII, generate synthetic data and sync environments for better
+testing, debugging and developer experience.
+
+<ThemedImage
+  alt="Neosync header"
+  sources={{
+    light: 'https://assets.nucleuscloud.com/neosync/docs/neosync-header.svg',
+    dark: 'https://assets.nucleuscloud.com/neosync/docs/neosync-header-dark.svg',
+  }}
+/>
+
+## Core Features
+
+Neosync has four core features that deliver value to developers and engineering teams. Click on each one below to learn more.
+
+<CustomCardList
+  cards={[
+    {
+      title: 'Anonymization',
+      description: 'Anonymize sensitive data for safe testing and development',
+      link: '/core-features#anonymization',
+      icon: <LinkBreak1Icon />,
+    },
+    {
+      title: 'Synthetic Data Generation',
+      description:
+        'Generate high-quality synthetic data from existing data or from scratch.',
+      link: '/core-features#synthetic-data-generation',
+      icon: <PiFlaskLight />,
+    },
+    {
+      title: 'Subsetting',
+      description: 'Subset your data to fit local and stage environments.',
+      link: '/core-features#subsetting',
+      icon: <BsFunnel />,
+    },
+    {
+      title: 'Orchestration',
+      description: 'Orchestrate and sync data across environments',
+      link: '/core-features#orchestration',
+      icon: <PiArrowsSplitLight />,
+    },
+  ]}
+/>
+
+## Use cases
+
+Neosync can be used in many different ways to support different use-cases. Check out the most common use-cases below.
+
+<CustomCardList
+  cards={[
+    {
+      title: 'Test code against Production',
+      description: 'Safely test your code against Production data',
+      link: '/usecases#safely-test-your-code-against-production-data',
+      icon: <PiTestTube />,
+    },
+    {
+      title: 'Reproduce bugs locally',
+      description: 'Easily reproduce Production bugs locally',
+      link: '/usecases#easily-reproduce-production-bugs-locally',
+      icon: <PiArrowCounterClockwise />,
+    },
+    {
+      title: 'High quality test data',
+      description: 'High quality data for lower-level environments',
+      link: '/usecases#high-quality-data-for-lower-level-environments',
+      icon: <PiDatabase />,
+    },
+    {
+      title: 'Solve GDPR, DPDP, FERPA, HIPAA + more',
+      description: 'Frictionless compliance, security and data privacy',
+      link: '/usecases#solve-gdpr-dpdp-ferpa-hipaa-and-more',
+      icon: <PiShieldCheckLight />,
+    },
+  ]}
+/>
+
+## Deploying Neosync
+
+Once you're ready to deploy Neosync, check out our Deployment guide to see the available deployment options.
+
+<CustomCard
+  title="Deploy"
+  description="Learn how to deploy Neosync using Docker Compose or Kubernetes. "
+  link="/deploy/introduction"
+  icon={<PiRocketLaunchLight />}
+/>
+
+## Contributing to Neosync
+
+We love contributors and are happy to accept PRs. The best way to contribute to Neosync is to go ahead and try out it. If you find something is not right, you can report an issue [here](https://github.com/nucleuscloud/neosync/issues/new?assignees=&labels=bug&template=bug_report.md).

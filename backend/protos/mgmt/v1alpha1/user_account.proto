@@ -1,0 +1,197 @@
+syntax = "proto3";
+
+package mgmt.v1alpha1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+message GetUserRequest {}
+message GetUserResponse {
+  string user_id = 1;
+}
+
+message SetUserRequest {}
+message SetUserResponse {
+  string user_id = 1;
+}
+
+message GetUserAccountsRequest {}
+message GetUserAccountsResponse {
+  repeated UserAccount accounts = 1;
+}
+
+message UserAccount {
+  string id = 1;
+  string name = 2;
+  UserAccountType type = 3;
+}
+
+enum UserAccountType {
+  USER_ACCOUNT_TYPE_UNSPECIFIED = 0;
+  USER_ACCOUNT_TYPE_PERSONAL = 1;
+  USER_ACCOUNT_TYPE_TEAM = 2;
+  USER_ACCOUNT_TYPE_ENTERPRISE = 3;
+}
+
+message ConvertPersonalToTeamAccountRequest {}
+message ConvertPersonalToTeamAccountResponse {}
+
+message SetPersonalAccountRequest {}
+message SetPersonalAccountResponse {
+  string account_id = 1;
+}
+
+message IsUserInAccountRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message IsUserInAccountResponse {
+  bool ok = 1;
+}
+
+message GetAccountTemporalConfigRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetAccountTemporalConfigResponse {
+  AccountTemporalConfig config = 1;
+}
+
+message SetAccountTemporalConfigRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+  AccountTemporalConfig config = 2;
+}
+message SetAccountTemporalConfigResponse {
+  AccountTemporalConfig config = 1;
+}
+
+message AccountTemporalConfig {
+  string url = 1 [(buf.validate.field).string.min_len = 1];
+  string namespace = 2 [(buf.validate.field).string.min_len = 1];
+  string sync_job_queue_name = 3 [(buf.validate.field).string.min_len = 1];
+}
+
+message CreateTeamAccountRequest {
+  string name = 1 [(buf.validate.field).string.pattern = "^[a-z0-9-]{3,30}$"];
+}
+message CreateTeamAccountResponse {
+  string account_id = 1;
+}
+
+message AccountUser {
+  string id = 1;
+  string name = 2;
+  string image = 3;
+  string email = 4;
+}
+
+message GetTeamAccountMembersRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetTeamAccountMembersResponse {
+  repeated AccountUser users = 1;
+}
+
+message RemoveTeamAccountMemberRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  string account_id = 2 [(buf.validate.field).string.uuid = true];
+}
+message RemoveTeamAccountMemberResponse {}
+
+message InviteUserToTeamAccountRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+  string email = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message AccountInvite {
+  string id = 1;
+  string account_id = 2;
+  string sender_user_id = 3;
+  string email = 4;
+  string token = 5;
+  bool accepted = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  google.protobuf.Timestamp expires_at = 9;
+}
+
+message InviteUserToTeamAccountResponse {
+  AccountInvite invite = 1;
+}
+
+message GetTeamAccountInvitesRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetTeamAccountInvitesResponse {
+  repeated AccountInvite invites = 1;
+}
+
+message RemoveTeamAccountInviteRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message RemoveTeamAccountInviteResponse {}
+
+message AcceptTeamAccountInviteRequest {
+  string token = 1 [(buf.validate.field).string.min_len = 1];
+}
+message AcceptTeamAccountInviteResponse {
+  UserAccount account = 1;
+}
+
+message GetSystemInformationRequest {}
+message GetSystemInformationResponse {
+  string version = 1;
+  string commit = 2;
+  string compiler = 3;
+  string platform = 4;
+  google.protobuf.Timestamp build_date = 5;
+}
+
+message GetAccountOnboardingConfigRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetAccountOnboardingConfigResponse {
+  AccountOnboardingConfig config = 1;
+}
+
+message SetAccountOnboardingConfigRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+  AccountOnboardingConfig config = 2;
+}
+message SetAccountOnboardingConfigResponse {
+  AccountOnboardingConfig config = 1;
+}
+
+message AccountOnboardingConfig {
+  bool has_created_source_connection = 1;
+  bool has_created_destination_connection = 2;
+  bool has_created_job = 3;
+  bool has_invited_members = 4;
+}
+
+service UserAccountService {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {}
+  rpc SetUser(SetUserRequest) returns (SetUserResponse) {}
+
+  rpc GetUserAccounts(GetUserAccountsRequest) returns (GetUserAccountsResponse) {}
+
+  rpc SetPersonalAccount(SetPersonalAccountRequest) returns (SetPersonalAccountResponse) {}
+
+  rpc ConvertPersonalToTeamAccount(ConvertPersonalToTeamAccountRequest) returns (ConvertPersonalToTeamAccountResponse) {}
+  rpc CreateTeamAccount(CreateTeamAccountRequest) returns (CreateTeamAccountResponse) {}
+
+  rpc IsUserInAccount(IsUserInAccountRequest) returns (IsUserInAccountResponse) {}
+
+  rpc GetAccountTemporalConfig(GetAccountTemporalConfigRequest) returns (GetAccountTemporalConfigResponse) {}
+  rpc SetAccountTemporalConfig(SetAccountTemporalConfigRequest) returns (SetAccountTemporalConfigResponse) {}
+
+  rpc GetTeamAccountMembers(GetTeamAccountMembersRequest) returns (GetTeamAccountMembersResponse) {}
+  rpc RemoveTeamAccountMember(RemoveTeamAccountMemberRequest) returns (RemoveTeamAccountMemberResponse) {}
+  rpc InviteUserToTeamAccount(InviteUserToTeamAccountRequest) returns (InviteUserToTeamAccountResponse) {}
+  rpc GetTeamAccountInvites(GetTeamAccountInvitesRequest) returns (GetTeamAccountInvitesResponse) {}
+  rpc RemoveTeamAccountInvite(RemoveTeamAccountInviteRequest) returns (RemoveTeamAccountInviteResponse) {}
+  rpc AcceptTeamAccountInvite(AcceptTeamAccountInviteRequest) returns (AcceptTeamAccountInviteResponse) {}
+
+  rpc GetSystemInformation(GetSystemInformationRequest) returns (GetSystemInformationResponse) {}
+
+  rpc GetAccountOnboardingConfig(GetAccountOnboardingConfigRequest) returns (GetAccountOnboardingConfigResponse) {}
+  rpc SetAccountOnboardingConfig(SetAccountOnboardingConfigRequest) returns (SetAccountOnboardingConfigResponse) {}
+}

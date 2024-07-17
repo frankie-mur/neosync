@@ -1,0 +1,82 @@
+on:
+  pull_request:
+    paths:
+      - docs/**
+
+name: Docs
+jobs:
+  knip:
+    name: Knip
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: ./docs/package-lock.json
+
+      - run: npm ci
+      - run: npm run knip:production
+
+  prettier:
+    name: Prettier
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: ./docs/package-lock.json
+
+      - run: npm ci
+      - run: npm run prettier:check
+
+  typecheck:
+    name: TS TypeCheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: ./docs/package-lock.json
+
+      - run: npm ci
+      - name: Build
+        run: npm run typecheck
+
+  spellcheck:
+    name: Spellcheck Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: streetsidesoftware/cspell-action@v6
+        with:
+          root: docs
+          config: docs/cspell.json
+          incremental_files_only: true
+          files: |
+            blog/**/*.md*
+            docs/**/*.md*

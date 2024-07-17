@@ -1,0 +1,81 @@
+on:
+  pull_request:
+    paths:
+      - backend/sqlc.yaml
+      - backend/sql/**
+      - SQLC_VERSION
+
+name: SQLC
+jobs:
+  sqlcdiff:
+    name: sqlc-diff
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Retrieve SQLC Version
+        run: |
+          VER=$(cat SQLC_VERSION)
+          echo "SQLC_VERSION=$VER" >> $GITHUB_ENV
+
+      - uses: sqlc-dev/setup-sqlc@v4
+        with:
+          sqlc-version: ${{ env.SQLC_VERSION }}
+
+      - run: sqlc diff
+
+  sqlcvet:
+    name: sqlc-vet
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: "postgres:15"
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: nucleus
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        # needed because the postgres container does not provide a healthcheck
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch sqlc.yaml with db-prepare lint
+        uses: mikefarah/yq@v4.44.2
+        with:
+          cmd: sh ./backend/scripts/sqlc-prepare-patch.sh postgresql://postgres:postgres@localhost:5432/nucleus ./backend/sqlc.yaml
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Install golang-migrate
+        run: make install-go-tools
+
+      - name: Run migrations on database
+        env:
+          PG_PASSWORD: postgres
+        run: ./scripts/migrate.sh up
+
+      - name: Retrieve SQLC Version
+        run: |
+          VER=$(cat SQLC_VERSION)
+          echo "SQLC_VERSION=$VER" >> $GITHUB_ENV
+
+      - uses: sqlc-dev/setup-sqlc@v4
+        with:
+          sqlc-version: ${{ env.SQLC_VERSION }}
+
+      - run: sqlc vet

@@ -1,0 +1,688 @@
+syntax = "proto3";
+
+package mgmt.v1alpha1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "mgmt/v1alpha1/transformer.proto";
+
+message GetJobsRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetJobsResponse {
+  repeated Job jobs = 1;
+}
+
+message JobSource {
+  JobSourceOptions options = 1 [(buf.validate.field).required = true];
+}
+
+message JobSourceOptions {
+  oneof config {
+    option (buf.validate.oneof).required = true;
+    PostgresSourceConnectionOptions postgres = 1;
+    AwsS3SourceConnectionOptions aws_s3 = 2;
+    MysqlSourceConnectionOptions mysql = 3;
+    GenerateSourceOptions generate = 4;
+    AiGenerateSourceOptions ai_generate = 5;
+    MongoDBSourceConnectionOptions mongodb = 6;
+  }
+}
+
+message CreateJobDestination {
+  string connection_id = 1 [(buf.validate.field).string.uuid = true];
+  JobDestinationOptions options = 2;
+}
+
+message JobDestination {
+  string connection_id = 1;
+  JobDestinationOptions options = 2;
+  string id = 3;
+}
+
+message AiGenerateSourceOptions {
+  // The connection id that corresponds with an AI-based Neosync connection
+  string ai_connection_id = 1 [(buf.validate.field).string.uuid = true];
+  // The list of schemas (and their tables) along with any configuration options that will be used to generate data for.
+  repeated AiGenerateSourceSchemaOption schemas = 2 [(buf.validate.field).repeated.min_items = 1];
+  // An optional connection id that will be used as the basis for the shape of data to be generated.
+  optional string fk_source_connection_id = 3 [(buf.validate.field).string.uuid = true];
+  // The name of the model to use
+  string model_name = 4 [(buf.validate.field).string.min_len = 1];
+  // Optionally provide a user prompt to give more context to the schema
+  optional string user_prompt = 5;
+  // The batch size that will be used to generate X number of records. This is global and will be applied to all tables configured.
+  optional int64 generate_batch_size = 6 [
+    (buf.validate.field).int64.gte = 1,
+    (buf.validate.field).int64.lte = 100
+  ];
+}
+
+message AiGenerateSourceSchemaOption {
+  // The dataabase schema
+  string schema = 1 [(buf.validate.field).string.min_len = 1];
+  // The list of tables (and their configuration) that reside within the schema to receive generated data
+  repeated AiGenerateSourceTableOption tables = 2 [(buf.validate.field).repeated.min_items = 1];
+}
+message AiGenerateSourceTableOption {
+  // The table that will be used to. 1. The schema of the table will be injected into the prompt, of which the resulting data will then be inserted.
+  string table = 1 [(buf.validate.field).string.min_len = 1];
+  // The total number of records to be generated.
+  int64 row_count = 2 [
+    (buf.validate.field).int64.gte = 1,
+    (buf.validate.field).int64.lte = 1000
+  ];
+}
+
+message GenerateSourceOptions {
+  repeated GenerateSourceSchemaOption schemas = 1 [(buf.validate.field).repeated.min_items = 1];
+  optional string fk_source_connection_id = 3 [(buf.validate.field).string.uuid = true];
+}
+message GenerateSourceSchemaOption {
+  string schema = 1 [(buf.validate.field).string.min_len = 1];
+  repeated GenerateSourceTableOption tables = 2 [(buf.validate.field).repeated.min_items = 1];
+}
+message GenerateSourceTableOption {
+  string table = 1 [(buf.validate.field).string.min_len = 1];
+  int64 row_count = 2 [(buf.validate.field).int64.gte = 1];
+}
+
+message MongoDBSourceConnectionOptions {
+  string connection_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message PostgresSourceConnectionOptions {
+  bool halt_on_new_column_addition = 1;
+  repeated PostgresSourceSchemaOption schemas = 2;
+  string connection_id = 3 [(buf.validate.field).string.uuid = true];
+  bool subset_by_foreign_key_constraints = 4;
+}
+
+message PostgresSourceSchemaOption {
+  string schema = 1;
+  repeated PostgresSourceTableOption tables = 2;
+}
+message PostgresSourceTableOption {
+  string table = 1;
+  optional string where_clause = 2;
+}
+
+message MysqlSourceConnectionOptions {
+  bool halt_on_new_column_addition = 1;
+  repeated MysqlSourceSchemaOption schemas = 2;
+  string connection_id = 3 [(buf.validate.field).string.uuid = true];
+  bool subset_by_foreign_key_constraints = 4;
+}
+
+message MysqlSourceSchemaOption {
+  string schema = 1;
+  repeated MysqlSourceTableOption tables = 2;
+}
+message MysqlSourceTableOption {
+  string table = 1;
+  optional string where_clause = 2;
+}
+
+message AwsS3SourceConnectionOptions {
+  string connection_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message JobDestinationOptions {
+  oneof config {
+    option (buf.validate.oneof).required = true;
+    PostgresDestinationConnectionOptions postgres_options = 1;
+    AwsS3DestinationConnectionOptions aws_s3_options = 2;
+    MysqlDestinationConnectionOptions mysql_options = 3;
+    MongoDBDestinationConnectionOptions mongodb_options = 4;
+    // Destination Connecton options for Google Cloud Storage
+    GcpCloudStorageDestinationConnectionOptions gcp_cloudstorage_options = 5;
+  }
+}
+
+message MongoDBDestinationConnectionOptions {}
+
+// Configuration for Google Cloud Storage Connection Job Options
+message GcpCloudStorageDestinationConnectionOptions {}
+
+message PostgresDestinationConnectionOptions {
+  PostgresTruncateTableConfig truncate_table = 1;
+  bool init_table_schema = 2;
+  PostgresOnConflictConfig on_conflict = 3;
+}
+
+message PostgresOnConflictConfig {
+  bool do_nothing = 1;
+}
+
+message PostgresTruncateTableConfig {
+  bool truncate_before_insert = 1;
+  bool cascade = 2;
+}
+
+message MysqlDestinationConnectionOptions {
+  MysqlTruncateTableConfig truncate_table = 1;
+  bool init_table_schema = 2;
+  MysqlOnConflictConfig on_conflict = 3;
+}
+message MysqlTruncateTableConfig {
+  bool truncate_before_insert = 1;
+}
+message MysqlOnConflictConfig {
+  bool do_nothing = 1;
+}
+
+message AwsS3DestinationConnectionOptions {}
+
+message CreateJobRequest {
+  // The unique account identifier that this job will be associated with
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+  // The unique, friendly name of the job. This is unique per account
+  string job_name = 2 [(buf.validate.field).string.pattern = "^[a-z0-9-]{3,30}$"];
+  // Optionally provide a cron schedule. Goes into effect if the job status is set to enabled
+  optional string cron_schedule = 3;
+  repeated JobMapping mappings = 4;
+  JobSource source = 5;
+  repeated CreateJobDestination destinations = 6;
+  // Initially trigger a run of this job regardless of its status or cron schedule
+  bool initiate_job_run = 7;
+
+  // Specify timeouts and other workflow options for the underlying temporal workflow
+  WorkflowOptions workflow_options = 8;
+
+  // Specify timeout and retry options for data synchronization activities
+  // Data sync activities are any piece of work that involves actually synchronizing data from a source to a destination
+  // For the data sync and generate jobs, this will be applied per table
+  ActivityOptions sync_options = 9;
+  repeated VirtualForeignConstraint virtual_foreign_keys = 10;
+}
+
+// Config that contains various timeouts that are configured in the underlying temporal workflow
+// More options will come in the future as needed
+message WorkflowOptions {
+  // The timeout for a single workflow run.
+  // Measured in seconds
+  optional int64 run_timeout = 8;
+}
+
+// Config that contains various timeouts that are configured in the underlying temporal workflow(s) and activities
+message ActivityOptions {
+  // Total time that a workflow is willing to wait for an activity to complete, including retries.
+  // Measured in seconds
+  optional int64 schedule_to_close_timeout = 1 [(buf.validate.field).int64.gte = 1];
+  // Max time of a single Temporal Activity execution attempt.
+  // This timeout should be as short as the longest psosible execution of any activity (e.g. table sync).
+  // Important to know that this is per retry attempt. Defaults to the schedule to close timeout if not provided.
+  // Measured in seconds
+  optional int64 start_to_close_timeout = 2 [(buf.validate.field).int64.gte = 1];
+
+  // Optionally define a retry policy for the activity
+  // If max attempts is not set, the activity will retry indefinitely until the start to close timeout lapses
+  RetryPolicy retry_policy = 3;
+}
+
+// Defines the retry policy for an activity
+message RetryPolicy {
+  // Maximum number of attempts. When exceeded the retries stop even if not expired yet.
+  // If not set or set to 0, it means unlimited, and rely on activity ScheduleToCloseTimeout to stop.
+  optional int32 maximum_attempts = 1 [(buf.validate.field).int32.gte = 0];
+}
+
+message CreateJobResponse {
+  Job job = 1;
+}
+
+message JobMappingTransformer {
+  TransformerSource source = 1;
+  TransformerConfig config = 3;
+}
+
+message JobMapping {
+  string schema = 1;
+  string table = 2;
+  string column = 3;
+  JobMappingTransformer transformer = 5;
+}
+
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0;
+  JOB_STATUS_ENABLED = 1;
+  JOB_STATUS_PAUSED = 3;
+  JOB_STATUS_DISABLED = 4;
+}
+
+message GetJobRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetJobResponse {
+  Job job = 1;
+}
+
+message UpdateJobScheduleRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  optional string cron_schedule = 2;
+}
+message UpdateJobScheduleResponse {
+  Job job = 1;
+}
+
+message PauseJobRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  bool pause = 2;
+  optional string note = 3;
+}
+message PauseJobResponse {
+  Job job = 1;
+}
+
+message UpdateJobSourceConnectionRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  JobSource source = 2;
+  repeated JobMapping mappings = 3;
+  repeated VirtualForeignConstraint virtual_foreign_keys = 4;
+}
+message UpdateJobSourceConnectionResponse {
+  Job job = 1;
+}
+
+message PostgresSourceSchemaSubset {
+  repeated PostgresSourceSchemaOption postgres_schemas = 1;
+}
+
+message MysqlSourceSchemaSubset {
+  repeated MysqlSourceSchemaOption mysql_schemas = 1;
+}
+
+message JobSourceSqlSubetSchemas {
+  oneof schemas {
+    option (buf.validate.oneof).required = true;
+    PostgresSourceSchemaSubset postgres_subset = 2;
+    MysqlSourceSchemaSubset mysql_subset = 3;
+  }
+}
+
+message SetJobSourceSqlConnectionSubsetsRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  JobSourceSqlSubetSchemas schemas = 2;
+  bool subset_by_foreign_key_constraints = 3;
+}
+message SetJobSourceSqlConnectionSubsetsResponse {
+  Job job = 1;
+}
+
+message UpdateJobDestinationConnectionRequest {
+  string job_id = 1 [(buf.validate.field).string.uuid = true];
+  string connection_id = 2 [(buf.validate.field).string.uuid = true];
+  JobDestinationOptions options = 3;
+  string destination_id = 4;
+}
+message UpdateJobDestinationConnectionResponse {
+  Job job = 1;
+}
+
+message DeleteJobDestinationConnectionRequest {
+  string destination_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteJobDestinationConnectionResponse {}
+
+message CreateJobDestinationConnectionsRequest {
+  string job_id = 1 [(buf.validate.field).string.uuid = true];
+  repeated CreateJobDestination destinations = 2;
+}
+message CreateJobDestinationConnectionsResponse {
+  Job job = 1;
+}
+
+message DeleteJobRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteJobResponse {}
+
+message IsJobNameAvailableRequest {
+  string name = 1 [(buf.validate.field).string.pattern = "^[a-z0-9-]{3,30}$"];
+  string account_id = 2 [(buf.validate.field).string.uuid = true];
+}
+message IsJobNameAvailableResponse {
+  bool is_available = 1;
+}
+
+message GetJobRunsRequest {
+  oneof id {
+    string job_id = 1 [(buf.validate.field).string.uuid = true];
+    string account_id = 2 [(buf.validate.field).string.uuid = true];
+  }
+}
+message GetJobRunsResponse {
+  repeated JobRun job_runs = 1;
+}
+
+message GetJobRunRequest {
+  string job_run_id = 1;
+  string account_id = 2 [(buf.validate.field).string.uuid = true];
+}
+message GetJobRunResponse {
+  JobRun job_run = 1;
+}
+
+message CreateJobRunRequest {
+  string job_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message CreateJobRunResponse {}
+
+message CancelJobRunRequest {
+  string job_run_id = 1;
+  string account_id = 2 [(buf.validate.field).string.uuid = true];
+}
+message CancelJobRunResponse {}
+
+message Job {
+  // The unique identifier of the job
+  string id = 1;
+
+  string created_by_user_id = 2;
+  google.protobuf.Timestamp created_at = 3;
+
+  string updated_by_user_id = 4;
+  google.protobuf.Timestamp updated_at = 5;
+
+  // The unique, friendly name of the job
+  string name = 6;
+
+  JobSource source = 7;
+  repeated JobDestination destinations = 8;
+  repeated JobMapping mappings = 9;
+  optional string cron_schedule = 10;
+
+  // The account identifier that a job is associated with
+  string account_id = 11;
+
+  // Specify timeout and retry options for data synchronization activities
+  // Data sync activities are any piece of work that involves actually synchronizing data from a source to a destination
+  // For the data sync and generate jobs, this will be applied per table
+  ActivityOptions sync_options = 12;
+
+  // Specify timeouts and other workflow options for the underlying temporal workflow
+  WorkflowOptions workflow_options = 13;
+  repeated VirtualForeignConstraint virtual_foreign_keys = 14;
+}
+
+message JobRecentRun {
+  google.protobuf.Timestamp start_time = 1;
+
+  string job_run_id = 2;
+}
+
+message GetJobRecentRunsRequest {
+  string job_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetJobRecentRunsResponse {
+  repeated JobRecentRun recent_runs = 1;
+}
+
+message JobNextRuns {
+  repeated google.protobuf.Timestamp next_run_times = 1;
+}
+
+message GetJobNextRunsRequest {
+  string job_id = 1;
+}
+message GetJobNextRunsResponse {
+  JobNextRuns next_runs = 1;
+}
+
+message GetJobStatusRequest {
+  string job_id = 1;
+}
+message GetJobStatusResponse {
+  JobStatus status = 1;
+}
+
+message JobStatusRecord {
+  string job_id = 1;
+  JobStatus status = 2;
+}
+
+message GetJobStatusesRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetJobStatusesResponse {
+  repeated JobStatusRecord statuses = 1;
+}
+
+enum ActivityStatus {
+  ACTIVITY_STATUS_UNSPECIFIED = 0;
+  ACTIVITY_STATUS_SCHEDULED = 1;
+  ACTIVITY_STATUS_STARTED = 2;
+  ACTIVITY_STATUS_CANCELED = 3;
+  ACTIVITY_STATUS_FAILED = 4;
+}
+
+message ActivityFailure {
+  string message = 1;
+}
+
+message PendingActivity {
+  ActivityStatus status = 1;
+  string activity_name = 2;
+  optional ActivityFailure last_failure = 3;
+}
+
+message JobRun {
+  // The id of the job run. This will currently be equivalent to the temporal workflow id
+  string id = 1;
+  // The unique identifier of the job id this run is associated with
+  string job_id = 2;
+  // The name of the job run.
+  string name = 3;
+  // the status of the job run
+  JobRunStatus status = 4;
+
+  // A timestamp of when the run started
+  google.protobuf.Timestamp started_at = 6;
+  // Available if the run completed or has not yet been archived by the system
+  optional google.protobuf.Timestamp completed_at = 7;
+  // Pending activities are only returned when retrieving a specific job run and will not be returned when requesting job runs in list format
+  repeated PendingActivity pending_activities = 8;
+}
+
+// An enumeration of job run statuses.
+enum JobRunStatus {
+  // if the job run status is unknown
+  JOB_RUN_STATUS_UNSPECIFIED = 0;
+  // the run is pending and has not started yet
+  JOB_RUN_STATUS_PENDING = 1;
+  // the run is currently in progress
+  JOB_RUN_STATUS_RUNNING = 2;
+  // the run has successfully completed
+  JOB_RUN_STATUS_COMPLETE = 3;
+  // the run ended with an error
+  JOB_RUN_STATUS_ERROR = 4;
+  // the run was cancelled
+  JOB_RUN_STATUS_CANCELED = 5;
+  // the run was terminated
+  JOB_RUN_STATUS_TERMINATED = 6;
+  // the run ended in failure
+  JOB_RUN_STATUS_FAILED = 7;
+  // the run was ended pre-maturely due to timeout
+  JOB_RUN_STATUS_TIMED_OUT = 8;
+}
+
+message JobRunEventTaskError {
+  string message = 1;
+  string retry_state = 2;
+}
+
+message JobRunEventTask {
+  int64 id = 1;
+  string type = 2;
+  google.protobuf.Timestamp event_time = 3;
+  JobRunEventTaskError error = 4;
+}
+
+message JobRunSyncMetadata {
+  string schema = 1;
+  string table = 2;
+}
+
+message JobRunEventMetadata {
+  oneof metadata {
+    option (buf.validate.oneof).required = true;
+    JobRunSyncMetadata sync_metadata = 1;
+  }
+}
+
+message JobRunEvent {
+  int64 id = 1;
+  string type = 2;
+  google.protobuf.Timestamp start_time = 3;
+  google.protobuf.Timestamp close_time = 4;
+  JobRunEventMetadata metadata = 5;
+  repeated JobRunEventTask tasks = 6;
+}
+
+message GetJobRunEventsRequest {
+  string job_run_id = 1;
+  string account_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message GetJobRunEventsResponse {
+  repeated JobRunEvent events = 1;
+  bool is_run_complete = 2;
+}
+
+message DeleteJobRunRequest {
+  string job_run_id = 1;
+  string account_id = 2 [(buf.validate.field).string.uuid = true];
+}
+message DeleteJobRunResponse {}
+
+message TerminateJobRunRequest {
+  string job_run_id = 1;
+  string account_id = 2 [(buf.validate.field).string.uuid = true];
+}
+message TerminateJobRunResponse {}
+
+enum LogWindow {
+  LOG_WINDOW_NO_TIME_UNSPECIFIED = 0;
+  LOG_WINDOW_FIFTEEN_MIN = 1;
+  LOG_WINDOW_ONE_HOUR = 2;
+  LOG_WINDOW_ONE_DAY = 3;
+}
+enum LogLevel {
+  LOG_LEVEL_UNSPECIFIED = 0;
+  LOG_LEVEL_DEBUG = 1;
+  LOG_LEVEL_INFO = 2;
+  LOG_LEVEL_WARN = 3;
+  LOG_LEVEL_ERROR = 4;
+}
+message GetJobRunLogsStreamRequest {
+  string job_run_id = 1;
+  string account_id = 2 [(buf.validate.field).string.uuid = true];
+  // The time window in which to retrieve the logs
+  LogWindow window = 3;
+  // Whether or not to tail the stream. Note: only works with k8s-pods and is not currently supported with Loki logs
+  bool should_tail = 4;
+  // Optionally provide a max log limit
+  optional int64 max_log_lines = 5 [(buf.validate.field).int64.gte = 1];
+  // Provide a list of log levels to filter by. If any of these are UNSPECIFIED, all log levels are returned.
+  repeated LogLevel log_levels = 6;
+}
+message GetJobRunLogsStreamResponse {
+  string log_line = 1;
+  optional google.protobuf.Timestamp timestamp = 2;
+}
+
+message SetJobWorkflowOptionsRequest {
+  // The unique identifier of the job
+  string id = 1 [(buf.validate.field).string.uuid = true];
+
+  // The workflow options object. The entire object must be provided and will fully overwrite the previous result
+  WorkflowOptions worfklow_options = 2;
+}
+message SetJobWorkflowOptionsResponse {
+  Job job = 1;
+}
+message SetJobSyncOptionsRequest {
+  // The unique identifier of the job
+  string id = 1 [(buf.validate.field).string.uuid = true];
+
+  // The sync options object. The entire object must be provided and will fully overwrite the previous result
+  ActivityOptions sync_options = 2;
+}
+message SetJobSyncOptionsResponse {
+  Job job = 1;
+}
+
+message ValidateJobMappingsRequest {
+  // The unique account identifier that this job will be associated with
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+  repeated JobMapping mappings = 2;
+  string connection_id = 3;
+  repeated VirtualForeignConstraint virtual_foreign_keys = 4;
+}
+
+message ColumnError {
+  string schema = 1;
+  string table = 2;
+  string column = 3;
+  repeated string errors = 4;
+}
+
+message DatabaseError {
+  repeated string errors = 1;
+}
+message ValidateJobMappingsResponse {
+  repeated ColumnError column_errors = 1;
+  DatabaseError database_errors = 2;
+}
+
+message VirtualForeignKey {
+  string schema = 1;
+  string table = 2;
+  repeated string columns = 3;
+}
+
+message VirtualForeignConstraint {
+  string schema = 1;
+  string table = 2;
+  repeated string columns = 3;
+  VirtualForeignKey foreign_key = 4;
+}
+
+service JobService {
+  rpc GetJobs(GetJobsRequest) returns (GetJobsResponse) {}
+  rpc GetJob(GetJobRequest) returns (GetJobResponse) {}
+  rpc CreateJob(CreateJobRequest) returns (CreateJobResponse) {}
+  rpc DeleteJob(DeleteJobRequest) returns (DeleteJobResponse) {}
+  rpc IsJobNameAvailable(IsJobNameAvailableRequest) returns (IsJobNameAvailableResponse) {}
+  rpc UpdateJobSchedule(UpdateJobScheduleRequest) returns (UpdateJobScheduleResponse) {}
+  rpc UpdateJobSourceConnection(UpdateJobSourceConnectionRequest) returns (UpdateJobSourceConnectionResponse) {}
+  rpc SetJobSourceSqlConnectionSubsets(SetJobSourceSqlConnectionSubsetsRequest) returns (SetJobSourceSqlConnectionSubsetsResponse) {}
+  rpc UpdateJobDestinationConnection(UpdateJobDestinationConnectionRequest) returns (UpdateJobDestinationConnectionResponse) {}
+  rpc DeleteJobDestinationConnection(DeleteJobDestinationConnectionRequest) returns (DeleteJobDestinationConnectionResponse) {}
+  rpc CreateJobDestinationConnections(CreateJobDestinationConnectionsRequest) returns (CreateJobDestinationConnectionsResponse) {}
+  rpc PauseJob(PauseJobRequest) returns (PauseJobResponse) {}
+  // Returns a list of recently invoked job runs baseds on the Temporal cron scheduler. This will return a list of job runs that include archived runs
+  rpc GetJobRecentRuns(GetJobRecentRunsRequest) returns (GetJobRecentRunsResponse) {}
+  // Returns a list of runs that are scheduled for execution based on the Temporal cron scheduler.
+  rpc GetJobNextRuns(GetJobNextRunsRequest) returns (GetJobNextRunsResponse) {}
+  rpc GetJobStatus(GetJobStatusRequest) returns (GetJobStatusResponse) {}
+  rpc GetJobStatuses(GetJobStatusesRequest) returns (GetJobStatusesResponse) {}
+
+  // Returns a list of job runs by either account or job
+  rpc GetJobRuns(GetJobRunsRequest) returns (GetJobRunsResponse) {}
+  rpc GetJobRunEvents(GetJobRunEventsRequest) returns (GetJobRunEventsResponse) {}
+  // Returns a specific job run, along with any of its pending activities
+  rpc GetJobRun(GetJobRunRequest) returns (GetJobRunResponse) {}
+  rpc DeleteJobRun(DeleteJobRunRequest) returns (DeleteJobRunResponse) {}
+  rpc CreateJobRun(CreateJobRunRequest) returns (CreateJobRunResponse) {}
+  rpc CancelJobRun(CancelJobRunRequest) returns (CancelJobRunResponse) {}
+  rpc TerminateJobRun(TerminateJobRunRequest) returns (TerminateJobRunResponse) {}
+  // Returns a stream of logs from the worker nodes that pertain to a specific job run
+  rpc GetJobRunLogsStream(GetJobRunLogsStreamRequest) returns (stream GetJobRunLogsStreamResponse) {}
+  // Set any job workflow options. Must provide entire object as is it will fully override the previous configuration
+  rpc SetJobWorkflowOptions(SetJobWorkflowOptionsRequest) returns (SetJobWorkflowOptionsResponse) {}
+  // Set the job sync options. Must provide entire object as it will fully override the previous configuration
+  rpc SetJobSyncOptions(SetJobSyncOptionsRequest) returns (SetJobSyncOptionsResponse) {}
+  // validates that the jobmapping configured can run with table constraints
+  rpc ValidateJobMappings(ValidateJobMappingsRequest) returns (ValidateJobMappingsResponse) {}
+}

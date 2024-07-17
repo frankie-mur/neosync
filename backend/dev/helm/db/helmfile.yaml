@@ -1,0 +1,20 @@
+repositories:
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+
+releases:
+  - name: neosync-postgresql
+    chart: bitnami/postgresql
+    version: 12.10.0
+    namespace: neosync
+    createNamespace: false
+
+    values:
+      - auth:
+          postgresPassword: foofar
+          database: nucleus
+        primary:
+          persistence:
+            mountPath: "/neosync/neosync-postgres"
+            existingClaim: neosync-postgres # see pvc in ../yaml/neosync-postgres-pvc.yaml
+        postgresqlDataDir: "/neosync/neosync-postgres/data"

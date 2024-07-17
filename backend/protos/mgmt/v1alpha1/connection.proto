@@ -1,0 +1,316 @@
+syntax = "proto3";
+
+package mgmt.v1alpha1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+message GetConnectionsRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetConnectionsResponse {
+  repeated Connection connections = 1;
+}
+
+message GetConnectionRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetConnectionResponse {
+  Connection connection = 1;
+}
+
+message CreateConnectionRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+  // The friendly name of the connection
+  string name = 2 [(buf.validate.field).string.pattern = "^[a-z0-9-]{3,30}$"];
+
+  ConnectionConfig connection_config = 3;
+}
+message CreateConnectionResponse {
+  Connection connection = 1;
+}
+
+message UpdateConnectionRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string.pattern = "^[a-z0-9-]{3,30}$"];
+  ConnectionConfig connection_config = 3;
+}
+message UpdateConnectionResponse {
+  Connection connection = 1;
+}
+
+message DeleteConnectionRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteConnectionResponse {}
+
+message CheckConnectionConfigRequest {
+  ConnectionConfig connection_config = 1;
+}
+
+message CheckConnectionConfigResponse {
+  // Whether or not the API was able to ping the connection
+  bool is_connected = 1;
+  // This is the error that was received if the API was unable to connect
+  optional string connection_error = 2;
+  repeated ConnectionRolePrivilege privileges = 3;
+}
+
+message ConnectionRolePrivilege {
+  // The role that was given the permissions
+  string grantee = 1;
+  // The database schema. Ex: public
+  string schema = 2;
+  // The name of the table in the schema
+  string table = 3;
+  // The privileges given to that role
+  repeated string privilege_type = 4;
+}
+
+message Connection {
+  string id = 1;
+  string name = 2;
+
+  ConnectionConfig connection_config = 3;
+
+  string created_by_user_id = 4;
+  google.protobuf.Timestamp created_at = 5;
+
+  string updated_by_user_id = 6;
+  google.protobuf.Timestamp updated_at = 7;
+
+  string account_id = 8;
+}
+
+// Configuration for all of the supported Neosync connection types
+message ConnectionConfig {
+  oneof config {
+    option (buf.validate.oneof).required = true;
+
+    // Configures a PostgreSQL connection
+    PostgresConnectionConfig pg_config = 1;
+    // Configures an AWS S3 Connection
+    AwsS3ConnectionConfig aws_s3_config = 2;
+    // Configures a MySQL connection
+    MysqlConnectionConfig mysql_config = 3;
+    // Configures a connection to a directory available on the local file system
+    LocalDirectoryConnectionConfig local_dir_config = 4;
+    // Connection config for an OpenAI (or compatible) Connection
+    OpenAiConnectionConfig openai_config = 5;
+    // Configures a MongoDB Connection
+    MongoConnectionConfig mongo_config = 6;
+    // Configures a GCP Cloud Storage Connection
+    GcpCloudStorageConnectionConfig gcp_cloudstorage_config = 7;
+  }
+}
+
+message MongoConnectionConfig {
+  // May provide either a raw string url, or a structured version
+  oneof connection_config {
+    option (buf.validate.oneof).required = true;
+    // The full mongo connection url
+    string url = 1;
+  }
+
+  // Provide tunnel configuration that can be used to access a connection that is not publicly accessible to the internet
+  SSHTunnel tunnel = 2;
+  // Provide client-side TLS Certificates
+  ClientTlsConfig client_tls = 3;
+}
+
+// Configures a connection to OpenAI or OpenAI compatible API.
+message OpenAiConnectionConfig {
+  // OpenAI Api Key
+  string api_key = 1;
+  // OpenAI URL
+  string api_url = 2;
+}
+
+// Configures a connection to a directory available on the local file system
+message LocalDirectoryConnectionConfig {
+  // The absolute path to a directory that is available on the local file system to the API and Worker nodes
+  string path = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message PostgresConnectionConfig {
+  // May provide either a raw string url, or a structured version
+  oneof connection_config {
+    option (buf.validate.oneof).required = true;
+
+    string url = 1;
+    PostgresConnection connection = 2;
+  }
+
+  // Provide tunnel configuration that can be used to access a postgres connection that is not publicly accessible to the internet
+  SSHTunnel tunnel = 3;
+  SqlConnectionOptions connection_options = 4;
+  // Provide client-side TLS Certificates
+  ClientTlsConfig client_tls = 5;
+}
+
+// Config for providing client-side TLS certificates
+message ClientTlsConfig {
+  // Root Certificate in PEM Format
+  optional string root_cert = 1;
+
+  // Client Certificate in PEM format. Must also provide key.
+  optional string client_cert = 2;
+  // Client Key in PEM format. Must also provide cert.
+  optional string client_key = 3;
+}
+
+message SqlConnectionOptions {
+  // Limits the number of open connections in the pool.
+  optional int32 max_connection_limit = 1;
+}
+
+message SSHTunnel {
+  // The host of the SSH server
+  string host = 1 [(buf.validate.field).string.min_len = 1];
+  // The port of the SSH server, typically 22
+  int32 port = 2 [(buf.validate.field).int32.gte = 0];
+  // The user that will be used to authenticate
+  string user = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Optionally provide the public key of the known host of the SSH tunnel that we are connecting to.
+  // If this is not provided, the server will blindly connect to the host with the given credentials.
+  // This is not recommended for production use!
+  optional string known_host_public_key = 4 [(buf.validate.field).string.min_len = 1];
+  // Provide the authentication required to successfully connect to the SSH server for tunneling
+  SSHAuthentication authentication = 5;
+}
+
+// SSH Authentication
+message SSHAuthentication {
+  oneof auth_config {
+    option (buf.validate.oneof).required = true;
+
+    SSHPassphrase passphrase = 1;
+    SSHPrivateKey private_key = 2;
+  }
+}
+
+// Contains the configuration needed to retrieve the SSH passphrase for the tunnel
+message SSHPassphrase {
+  // The password to be used to connect to the SSH server
+  string value = 1 [(buf.validate.field).string.min_len = 1];
+  // eventually we can expand this to allow pulling from other sources.
+}
+
+// Contains the configuration needed to retrieve the SSH private key for the tunnel
+message SSHPrivateKey {
+  // The private key in PEM format.
+  string value = 1 [(buf.validate.field).string.min_len = 1];
+  // If the private key is encrypted, this value should decrypt it.
+  optional string passphrase = 2;
+}
+
+message PostgresConnection {
+  string host = 1;
+  int32 port = 2;
+  string name = 3;
+  string user = 4;
+  string pass = 5;
+  optional string ssl_mode = 6;
+}
+
+message MysqlConnection {
+  string user = 1;
+  string pass = 2;
+  string protocol = 3;
+  string host = 4;
+  int32 port = 5;
+  string name = 6;
+}
+
+message MysqlConnectionConfig {
+  // May provide either a raw string url, or a structured version
+  oneof connection_config {
+    option (buf.validate.oneof).required = true;
+
+    string url = 1;
+    MysqlConnection connection = 2;
+  }
+
+  // Provide tunnel configuration that can be used to access a postgres connection that is not publicly accessible to the internet
+  SSHTunnel tunnel = 3;
+  SqlConnectionOptions connection_options = 4;
+}
+
+message AwsS3ConnectionConfig {
+  string bucket_arn = 1 [deprecated = true];
+  optional string path_prefix = 2;
+  optional AwsS3Credentials credentials = 3;
+  optional string region = 4;
+  optional string endpoint = 5;
+  string bucket = 6 [(buf.validate.field).string.min_len = 1];
+}
+
+// S3 Credentials that are used by the worker process.
+// Note: this may be optionally provided if the worker that is being hosted has environment credentials to the S3 bucket instead.
+message AwsS3Credentials {
+  optional string profile = 1;
+  optional string access_key_id = 2;
+  optional string secret_access_key = 3;
+  optional string session_token = 4;
+  optional bool from_ec2_role = 5;
+  optional string role_arn = 6;
+  optional string role_external_id = 7;
+}
+
+// Configuration for GCP Cloud Storage Buckets
+message GcpCloudStorageConnectionConfig {
+  // The GCP Cloud Storage bucket that will be accessed.
+  string bucket = 1 [(buf.validate.field).string.min_len = 1];
+  // The path prefix that will be appended to each file
+  optional string path_prefix = 2;
+
+  // stringified json of the service account credentials file
+  optional string service_account_credentials = 3;
+}
+
+message IsConnectionNameAvailableRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+  string connection_name = 2 [(buf.validate.field).string.pattern = "^[a-z0-9-]{3,30}$"];
+}
+
+message IsConnectionNameAvailableResponse {
+  bool is_available = 1;
+}
+
+message CheckSqlQueryRequest {
+  // The connection id that the query will be checked against
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  // The full query that will be run through a PREPARE statement
+  string query = 2 [(buf.validate.field).string.min_len = 1];
+}
+message CheckSqlQueryResponse {
+  // The query is run through PREPARE. Returns valid if it correctly compiled
+  bool is_valid = 1;
+  // The error message returned by the sql client if the prepare did not return successfully
+  optional string erorr_message = 2;
+}
+
+// Service for managing datasource connections.
+// This is a primary data model in Neosync and is used in reference when hooking up Jobs to synchronize and generate data.
+service ConnectionService {
+  // Returns a list of connections associated with the account
+  rpc GetConnections(GetConnectionsRequest) returns (GetConnectionsResponse) {}
+  // Returns a single connection
+  rpc GetConnection(GetConnectionRequest) returns (GetConnectionResponse) {}
+  // Creates a new connection
+  rpc CreateConnection(CreateConnectionRequest) returns (CreateConnectionResponse) {}
+  // Updates an existing connection
+  rpc UpdateConnection(UpdateConnectionRequest) returns (UpdateConnectionResponse) {}
+  // Removes a connection from the system.
+  rpc DeleteConnection(DeleteConnectionRequest) returns (DeleteConnectionResponse) {}
+  // Connections have friendly names, this method checks if the requested name is available in the system based on the account
+  rpc IsConnectionNameAvailable(IsConnectionNameAvailableRequest) returns (IsConnectionNameAvailableResponse) {}
+
+  // Checks if the connection config is connectable by the backend.
+  // Used mostly to verify that a connection is valid prior to creating a Connection object.
+  rpc CheckConnectionConfig(CheckConnectionConfigRequest) returns (CheckConnectionConfigResponse) {}
+  // Checks a constructed SQL query against a sql-based connection to see if it's valid based on that connection's data schema
+  // This is useful when constructing subsets to see if the WHERE clause is correct
+  rpc CheckSqlQuery(CheckSqlQueryRequest) returns (CheckSqlQueryResponse) {}
+}

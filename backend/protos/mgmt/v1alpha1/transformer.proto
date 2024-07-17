@@ -1,0 +1,422 @@
+syntax = "proto3";
+
+package mgmt.v1alpha1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+message GetSystemTransformersRequest {}
+
+message GetSystemTransformersResponse {
+  repeated SystemTransformer transformers = 1;
+}
+
+message GetSystemTransformerBySourceRequest {
+  TransformerSource source = 1;
+}
+
+message GetSystemTransformerBySourceResponse {
+  SystemTransformer transformer = 1;
+}
+
+message GetUserDefinedTransformersRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message GetUserDefinedTransformersResponse {
+  repeated UserDefinedTransformer transformers = 1;
+}
+
+message GetUserDefinedTransformerByIdRequest {
+  string transformer_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message GetUserDefinedTransformerByIdResponse {
+  UserDefinedTransformer transformer = 1;
+}
+
+message CreateUserDefinedTransformerRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string.pattern = "^[a-z0-9-]{3,30}$"];
+  string description = 3;
+  // @deprecated
+  string type = 4;
+  TransformerSource source = 5;
+  TransformerConfig transformer_config = 6;
+}
+
+message CreateUserDefinedTransformerResponse {
+  UserDefinedTransformer transformer = 1;
+}
+
+message DeleteUserDefinedTransformerRequest {
+  string transformer_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message DeleteUserDefinedTransformerResponse {}
+
+message UpdateUserDefinedTransformerRequest {
+  string transformer_id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string.pattern = "^[a-z0-9-]{3,30}$"];
+  string description = 3;
+  TransformerConfig transformer_config = 4;
+}
+
+message UpdateUserDefinedTransformerResponse {
+  UserDefinedTransformer transformer = 1;
+}
+
+message IsTransformerNameAvailableRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+  string transformer_name = 2 [(buf.validate.field).string.pattern = "^[a-z0-9-]{3,30}$"];
+}
+
+message IsTransformerNameAvailableResponse {
+  bool is_available = 1;
+}
+
+message UserDefinedTransformer {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2;
+  string description = 3;
+  // This property is readonly and is calculated based off the origin system transformer
+  TransformerDataType data_type = 5;
+  TransformerSource source = 6;
+  TransformerConfig config = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  string account_id = 10;
+  repeated TransformerDataType data_types = 11;
+}
+
+enum TransformerSource {
+  TRANSFORMER_SOURCE_UNSPECIFIED = 0;
+  TRANSFORMER_SOURCE_PASSTHROUGH = 1;
+  TRANSFORMER_SOURCE_GENERATE_DEFAULT = 2;
+  TRANSFORMER_SOURCE_TRANSFORM_JAVASCRIPT = 3;
+  TRANSFORMER_SOURCE_GENERATE_EMAIL = 4;
+  TRANSFORMER_SOURCE_TRANSFORM_EMAIL = 5;
+  TRANSFORMER_SOURCE_GENERATE_BOOL = 6;
+  TRANSFORMER_SOURCE_GENERATE_CARD_NUMBER = 7;
+  TRANSFORMER_SOURCE_GENERATE_CITY = 8;
+  TRANSFORMER_SOURCE_GENERATE_E164_PHONE_NUMBER = 9;
+  TRANSFORMER_SOURCE_GENERATE_FIRST_NAME = 10;
+  TRANSFORMER_SOURCE_GENERATE_FLOAT64 = 11;
+  TRANSFORMER_SOURCE_GENERATE_FULL_ADDRESS = 12;
+  TRANSFORMER_SOURCE_GENERATE_FULL_NAME = 13;
+  TRANSFORMER_SOURCE_GENERATE_GENDER = 14;
+  TRANSFORMER_SOURCE_GENERATE_INT64_PHONE_NUMBER = 15;
+  TRANSFORMER_SOURCE_GENERATE_INT64 = 16;
+  TRANSFORMER_SOURCE_GENERATE_RANDOM_INT64 = 17;
+  TRANSFORMER_SOURCE_GENERATE_LAST_NAME = 18;
+  TRANSFORMER_SOURCE_GENERATE_SHA256HASH = 19;
+  TRANSFORMER_SOURCE_GENERATE_SSN = 20;
+  TRANSFORMER_SOURCE_GENERATE_STATE = 21;
+  TRANSFORMER_SOURCE_GENERATE_STREET_ADDRESS = 22;
+  TRANSFORMER_SOURCE_GENERATE_STRING_PHONE_NUMBER = 23;
+  TRANSFORMER_SOURCE_GENERATE_STRING = 24;
+  TRANSFORMER_SOURCE_GENERATE_RANDOM_STRING = 25;
+  TRANSFORMER_SOURCE_GENERATE_UNIXTIMESTAMP = 26;
+  TRANSFORMER_SOURCE_GENERATE_USERNAME = 27;
+  TRANSFORMER_SOURCE_GENERATE_UTCTIMESTAMP = 28;
+  TRANSFORMER_SOURCE_GENERATE_UUID = 29;
+  TRANSFORMER_SOURCE_GENERATE_ZIPCODE = 30;
+  TRANSFORMER_SOURCE_TRANSFORM_E164_PHONE_NUMBER = 31;
+  TRANSFORMER_SOURCE_TRANSFORM_FIRST_NAME = 32;
+  TRANSFORMER_SOURCE_TRANSFORM_FLOAT64 = 33;
+  TRANSFORMER_SOURCE_TRANSFORM_FULL_NAME = 34;
+  TRANSFORMER_SOURCE_TRANSFORM_INT64_PHONE_NUMBER = 35;
+  TRANSFORMER_SOURCE_TRANSFORM_INT64 = 36;
+  TRANSFORMER_SOURCE_TRANSFORM_LAST_NAME = 37;
+  TRANSFORMER_SOURCE_TRANSFORM_PHONE_NUMBER = 38;
+  TRANSFORMER_SOURCE_TRANSFORM_STRING = 39;
+  TRANSFORMER_SOURCE_GENERATE_NULL = 40;
+  TRANSFORMER_SOURCE_GENERATE_CATEGORICAL = 42;
+  TRANSFORMER_SOURCE_TRANSFORM_CHARACTER_SCRAMBLE = 43;
+  TRANSFORMER_SOURCE_USER_DEFINED = 44;
+  TRANSFORMER_SOURCE_GENERATE_JAVASCRIPT = 45;
+}
+
+enum TransformerDataType {
+  TRANSFORMER_DATA_TYPE_UNSPECIFIED = 0;
+  TRANSFORMER_DATA_TYPE_STRING = 1;
+  TRANSFORMER_DATA_TYPE_INT64 = 2;
+  TRANSFORMER_DATA_TYPE_BOOLEAN = 3;
+  TRANSFORMER_DATA_TYPE_FLOAT64 = 4;
+  TRANSFORMER_DATA_TYPE_NULL = 5;
+  TRANSFORMER_DATA_TYPE_ANY = 6;
+  TRANSFORMER_DATA_TYPE_TIME = 7;
+  TRANSFORMER_DATA_TYPE_UUID = 8;
+}
+
+message SystemTransformer {
+  string name = 1;
+  string description = 2;
+  TransformerDataType data_type = 3;
+  TransformerSource source = 4;
+  TransformerConfig config = 5;
+  repeated TransformerDataType data_types = 6;
+  repeated SupportedJobType supported_job_types = 7;
+}
+
+enum SupportedJobType {
+  SUPPORTED_JOB_TYPE_UNSPECIFIED = 0;
+  SUPPORTED_JOB_TYPE_SYNC = 1;
+  SUPPORTED_JOB_TYPE_GENERATE = 2;
+}
+
+message TransformerConfig {
+  oneof config {
+    option (buf.validate.oneof).required = true;
+
+    GenerateEmail generate_email_config = 1;
+    TransformEmail transform_email_config = 2;
+    GenerateBool generate_bool_config = 3;
+    GenerateCardNumber generate_card_number_config = 4;
+    GenerateCity generate_city_config = 5;
+    GenerateE164PhoneNumber generate_e164_phone_number_config = 6;
+    GenerateFirstName generate_first_name_config = 7;
+    GenerateFloat64 generate_float64_config = 8;
+    GenerateFullAddress generate_full_address_config = 9;
+    GenerateFullName generate_full_name_config = 10;
+    GenerateGender generate_gender_config = 11;
+    GenerateInt64PhoneNumber generate_int64_phone_number_config = 12;
+    GenerateInt64 generate_int64_config = 13;
+    GenerateLastName generate_last_name_config = 14;
+    GenerateSha256Hash generate_sha256hash_config = 15;
+    GenerateSSN generate_ssn_config = 16;
+    GenerateState generate_state_config = 17;
+    GenerateStreetAddress generate_street_address_config = 18;
+    GenerateStringPhoneNumber generate_string_phone_number_config = 19;
+    GenerateString generate_string_config = 20;
+    GenerateUnixTimestamp generate_unixtimestamp_config = 21;
+    GenerateUsername generate_username_config = 22;
+    GenerateUtcTimestamp generate_utctimestamp_config = 23;
+    GenerateUuid generate_uuid_config = 24;
+    GenerateZipcode generate_zipcode_config = 25;
+    TransformE164PhoneNumber transform_e164_phone_number_config = 26;
+    TransformFirstName transform_first_name_config = 27;
+    TransformFloat64 transform_float64_config = 28;
+    TransformFullName transform_full_name_config = 29;
+    TransformInt64PhoneNumber transform_int64_phone_number_config = 30;
+    TransformInt64 transform_int64_config = 31;
+    TransformLastName transform_last_name_config = 32;
+    TransformPhoneNumber transform_phone_number_config = 33;
+    TransformString transform_string_config = 34;
+    Passthrough passthrough_config = 35;
+    Null nullconfig = 36;
+    UserDefinedTransformerConfig user_defined_transformer_config = 37;
+    GenerateDefault generate_default_config = 38;
+    TransformJavascript transform_javascript_config = 39;
+    GenerateCategorical generate_categorical_config = 40;
+    TransformCharacterScramble transform_character_scramble_config = 41;
+    GenerateJavascript generate_javascript_config = 42;
+  }
+}
+
+enum GenerateEmailType {
+  // Unspecified defaults to uuid v4
+  GENERATE_EMAIL_TYPE_UNSPECIFIED = 0;
+  // Generates a random uuid v4 (without hyphens) on the left side of the @. This has all the uniqueness guarantees of the standard uuid v4, along with randomized domains.
+  GENERATE_EMAIL_TYPE_UUID_V4 = 1;
+  // Generates a full name (firstnamelastname) on the left side of the @. This has high cardinality but is not guaranteed to be unique.
+  GENERATE_EMAIL_TYPE_FULLNAME = 2;
+}
+
+message GenerateEmail {
+  // Optionally specify the type of email to generate. The types specified determine the contents on the left side of the @.
+  optional GenerateEmailType email_type = 1;
+}
+
+// Action enumeration that dictates what the transform_email transformer should do in the case that it encounters an email that does not conform to RFC 5322
+enum InvalidEmailAction {
+  // Unspecified defaults to reject.
+  INVALID_EMAIL_ACTION_UNSPECIFIED = 0;
+  // If an invalid email is encountered, the transformer will reject the transformation and exit.
+  INVALID_EMAIL_ACTION_REJECT = 1;
+  // The result of the email will be null. This should only be specified if the destination column is also nullable.
+  INVALID_EMAIL_ACTION_NULL = 2;
+  // The result of the email will be identical to the original value, unmodified.
+  INVALID_EMAIL_ACTION_PASSTHROUGH = 3;
+  // The result of the email will be a brand new generated email. This is the same result as the generate_email transformer.
+  INVALID_EMAIL_ACTION_GENERATE = 4;
+}
+
+message TransformEmail {
+  // Whether or not to preserve the original domain, barring what has been specified in the excluded_domains property.
+  bool preserve_domain = 1;
+  // Whether or not to preserve the original length of the email. This causes the transformed email to retain the original length.
+  bool preserve_length = 2;
+  // A lsit of email domains that should be excluded. This changes based on the preserve_domain flag. See the docs for more details.
+  repeated string excluded_domains = 3;
+  // Optionally specify the type of email to generate. The types specified determine the contents on the left side of the @.
+  optional GenerateEmailType email_type = 4;
+  // Optionally specify an action in the result of an invalid email. An invalid email is one that does not conform to RFC 5322.
+  optional InvalidEmailAction invalid_email_action = 5;
+}
+
+message GenerateBool {}
+
+message GenerateCardNumber {
+  bool valid_luhn = 1;
+}
+
+message GenerateCity {}
+
+message GenerateDefault {}
+
+message GenerateE164PhoneNumber {
+  int64 min = 1;
+  int64 max = 2;
+}
+
+message GenerateFirstName {}
+
+message GenerateFloat64 {
+  bool randomize_sign = 1;
+  double min = 2;
+  double max = 3;
+  int64 precision = 4;
+}
+
+message GenerateFullAddress {}
+
+message GenerateFullName {}
+
+message GenerateGender {
+  bool abbreviate = 1;
+}
+
+message GenerateInt64PhoneNumber {}
+
+message GenerateInt64 {
+  bool randomize_sign = 1;
+  int64 min = 2;
+  int64 max = 3;
+}
+
+message GenerateLastName {}
+
+message GenerateSha256Hash {}
+
+message GenerateSSN {}
+
+message GenerateState {}
+
+message GenerateStreetAddress {}
+
+message GenerateStringPhoneNumber {
+  int64 min = 2;
+  int64 max = 3;
+}
+
+message GenerateString {
+  int64 min = 1;
+  int64 max = 2;
+}
+
+message GenerateUnixTimestamp {}
+
+message GenerateUsername {}
+
+message GenerateUtcTimestamp {}
+
+message GenerateUuid {
+  bool include_hyphens = 1;
+}
+
+message GenerateZipcode {}
+
+message TransformE164PhoneNumber {
+  bool preserve_length = 1;
+}
+
+message TransformFirstName {
+  bool preserve_length = 1;
+}
+
+message TransformFloat64 {
+  double randomization_range_min = 1;
+  double randomization_range_max = 2;
+}
+
+message TransformFullName {
+  bool preserve_length = 1;
+}
+
+message TransformInt64PhoneNumber {
+  bool preserve_length = 1;
+}
+
+message TransformInt64 {
+  int64 randomization_range_min = 1;
+  int64 randomization_range_max = 2;
+}
+
+message TransformLastName {
+  bool preserve_length = 1;
+}
+
+message TransformPhoneNumber {
+  bool preserve_length = 1;
+}
+
+message TransformString {
+  bool preserve_length = 1;
+}
+
+message Passthrough {}
+
+message Null {}
+
+message TransformJavascript {
+  string code = 1;
+}
+
+message UserDefinedTransformerConfig {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message ValidateUserJavascriptCodeRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+  string code = 2;
+}
+
+message ValidateUserJavascriptCodeResponse {
+  bool valid = 1;
+}
+
+message GenerateCategorical {
+  string categories = 1;
+}
+
+message TransformCharacterScramble {
+  // a user provided regular expression that they wish to validate if it compiles in GO
+  optional string user_provided_regex = 1;
+}
+
+message GenerateJavascript {
+  string code = 1;
+}
+
+message ValidateUserRegexCodeRequest {
+  string account_id = 1 [(buf.validate.field).string.uuid = true];
+  string user_provided_regex = 2;
+}
+
+message ValidateUserRegexCodeResponse {
+  bool valid = 1;
+}
+
+service TransformersService {
+  rpc GetSystemTransformers(GetSystemTransformersRequest) returns (GetSystemTransformersResponse) {}
+  rpc GetSystemTransformerBySource(GetSystemTransformerBySourceRequest) returns (GetSystemTransformerBySourceResponse) {}
+  rpc GetUserDefinedTransformers(GetUserDefinedTransformersRequest) returns (GetUserDefinedTransformersResponse) {}
+  rpc GetUserDefinedTransformerById(GetUserDefinedTransformerByIdRequest) returns (GetUserDefinedTransformerByIdResponse) {}
+  rpc CreateUserDefinedTransformer(CreateUserDefinedTransformerRequest) returns (CreateUserDefinedTransformerResponse) {}
+  rpc DeleteUserDefinedTransformer(DeleteUserDefinedTransformerRequest) returns (DeleteUserDefinedTransformerResponse) {}
+  rpc UpdateUserDefinedTransformer(UpdateUserDefinedTransformerRequest) returns (UpdateUserDefinedTransformerResponse) {}
+  rpc IsTransformerNameAvailable(IsTransformerNameAvailableRequest) returns (IsTransformerNameAvailableResponse) {}
+  rpc ValidateUserJavascriptCode(ValidateUserJavascriptCodeRequest) returns (ValidateUserJavascriptCodeResponse) {}
+  rpc ValidateUserRegexCode(ValidateUserRegexCodeRequest) returns (ValidateUserRegexCodeResponse) {}
+}
